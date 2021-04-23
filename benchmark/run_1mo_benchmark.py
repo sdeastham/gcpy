@@ -104,6 +104,10 @@ gchp_ref_bmk_mon  = '7'
 gchp_dev_bmk_year = '2019'
 gchp_dev_bmk_mon  = '7'
 
+# Whether GCHP files are legacy (pre-13.1) format
+gchp_ref_is_legacy=True
+gchp_dev_is_legacy=True
+
 # Name to be used for directory of output from this script
 results_dir = "BenchmarkResults"
 
@@ -264,23 +268,40 @@ gchp_dev_s_stop  = (str(gchp_dev_b_stop[0]),  str(gchp_dev_b_stop[1]).zfill(2))
 
 
 # Timestamps for files
-gcc_ref_date  = np.datetime64( "{}-{}-01T00:00:00".format(gcc_ref_s_start[0], gcc_ref_s_start[1]))
-gchp_ref_date = np.datetime64("{}-{}-16T12:00:00".format(gchp_ref_s_start[0], gchp_ref_s_start[1]))
 
+# Ref start
+gcc_ref_date  = np.datetime64( "{}-{}-01T00:00:00".format(gcc_ref_s_start[0], gcc_ref_s_start[1]))
+if not gchp_ref_is_legacy:
+    gchp_ref_date = np.datetime64("{}-{}-01T00:00:00".format(gchp_ref_s_start[0], gchp_ref_s_start[1]))
+else:
+    gchp_ref_date = np.datetime64("{}-{}-16T12:00:00".format(gchp_ref_s_start[0], gchp_ref_s_start[1]))
+
+# Ref end
 gcc_end_ref_date  = np.datetime64("{}-{}-01T00:00:00".format(gcc_ref_s_stop[0], gcc_ref_s_stop[1]))
 gchp_end_ref_date  = np.datetime64("{}-{}-01T00:00:00".format(gchp_ref_s_stop[0], gchp_ref_s_stop[1]))
 
+# Dev start
 gcc_dev_date  = np.datetime64( "{}-{}-01T00:00:00".format(gcc_dev_s_start[0], gcc_dev_s_start[1]))
-gchp_dev_date = np.datetime64("{}-{}-16T12:00:00".format(gchp_dev_s_start[0], gchp_dev_s_start[1]))
+if not gchp_dev_is_legacy:
+    gchp_dev_date = np.datetime64("{}-{}-01T00:00:00".format(gchp_dev_s_start[0], gchp_dev_s_start[1]))
+else:
+    gchp_dev_date = np.datetime64("{}-{}-16T12:00:00".format(gchp_dev_s_start[0], gchp_dev_s_start[1]))
 
+# Dev end
 gcc_end_dev_date  = np.datetime64("{}-{}-01T00:00:00".format(gcc_dev_s_stop[0], gcc_dev_s_stop[1]))
 gchp_end_dev_date  = np.datetime64("{}-{}-01T00:00:00".format(gchp_dev_s_stop[0], gchp_dev_s_stop[1]))
 
 # Seconds per month
 gcc_ref_sec_in_bmk_month  = (gcc_end_ref_date  - gcc_ref_date).astype("float64")
-gchp_ref_sec_in_bmk_month = (gchp_end_ref_date - gchp_ref_date).astype("float64") * 2
+gchp_ref_sec_in_bmk_month = (gchp_end_ref_date - gchp_ref_date).astype("float64")
 gcc_dev_sec_in_bmk_month  = (gcc_end_dev_date  - gcc_dev_date).astype("float64")
-gchp_dev_sec_in_bmk_month = (gchp_end_dev_date - gchp_dev_date).astype("float64") * 2
+gchp_dev_sec_in_bmk_month = (gchp_end_dev_date - gchp_dev_date).astype("float64")
+
+# Double gchp sec/month if mid-point timestamp in filename (legacy)
+if gchp_ref_is_legacy:
+    gchp_ref_sec_in_bmk_month = gchp_ref_sec_in_bmk_month * 2
+if gchp_dev_is_legacy:
+    gchp_dev_sec_in_bmk_month = gchp_dev_sec_in_bmk_month * 2
 
 # ======================================================================
 # Significant difference filenames
@@ -614,7 +635,8 @@ if gchp_vs_gcc:
         col = "SpeciesConc"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Meteorology data needed for GCC calculations
         col = "StateMet"
@@ -624,7 +646,8 @@ if gchp_vs_gcc:
         col = "StateMet"
         #col = "StateMet_avg" # use this for benchmarks prior to 13.0
         devmet = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                              is_gchp=True)
+                              is_gchp=True,
+                              is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Make concentration plots
         bmk.make_benchmark_conc_plots(
@@ -652,7 +675,8 @@ if gchp_vs_gcc:
         col = "Emissions"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create emissions plots
         bmk.make_benchmark_emis_plots(
@@ -679,13 +703,15 @@ if gchp_vs_gcc:
         col = "Emissions"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Meteorology needed for GCHP
         col = "StateMet"
         #col = "StateMet_avg" # use this for benchmarks prior to 13.0
         devmet = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                              is_gchp=True)
+                              is_gchp=True,
+                              is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Print emisisons and inventory tables
         bmk.make_benchmark_emis_tables(
@@ -711,7 +737,8 @@ if gchp_vs_gcc:
         col = "JValues"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Plot J-values
         bmk.make_benchmark_jvalue_plots(
@@ -736,7 +763,8 @@ if gchp_vs_gcc:
         col = "Aerosols"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Plot AODs
         bmk.make_benchmark_aod_plots(
@@ -761,7 +789,8 @@ if gchp_vs_gcc:
         col = "Restart"
         ref = get_filepath(gchp_vs_gcc_refrst, col, gcc_end_dev_date)
         dev = get_filepath(gchp_vs_gcc_devrst, col, gchp_end_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Plot mass tables
         bmk.make_benchmark_mass_tables(
@@ -784,7 +813,8 @@ if gchp_vs_gcc:
         col = "Budget"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Make budget table. Include calculation of Strat. Exclude Transport
         # and Accumulation.
@@ -813,7 +843,8 @@ if gchp_vs_gcc:
         col = "Metrics"
         ref = get_filepath(gchp_vs_gcc_refdir, col, gcc_dev_date)
         dev = get_filepath(gchp_vs_gcc_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create the OH Metrics table
         oh.make_benchmark_oh_metrics(
@@ -858,17 +889,21 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read
         col = "SpeciesConc"
         ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
         dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Meteorology data needed for GCHP calculations
         col = "StateMet"
         #col = "StateMet_avg" # use this for benchmarks prior to 13.0
         refmet = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
-                              is_gchp=True)
+                              is_gchp=True,
+                              is_legacy_gchp_format=gchp_ref_is_legacy)
         devmet = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                              is_gchp=True)
+                              is_gchp=True,
+                              is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Make concentration plots
         bmk.make_benchmark_conc_plots(
@@ -894,8 +929,12 @@ if gchp_vs_gchp:
 
         # Diagnostic collection files to read
         col = "Emissions"
-        ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date, is_gchp=True)
-        dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date, is_gchp=True)
+        ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
+        dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create emissions plots
         bmk.make_benchmark_emis_plots(
@@ -921,17 +960,21 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read
         col = "Emissions"
         ref = get_filepath(gchp_vs_gchp_refdir,col, gchp_ref_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
         dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Meteorology needed for GCHP
         col = "StateMet"
         #col = "StateMet_avg" # use this for benchmarks prior to 13.0
         refmet = get_filepath(gchp_vs_gchp_refdir,col, gchp_ref_date,
-                              is_gchp=True)
+                              is_gchp=True,
+                              is_legacy_gchp_format=gchp_ref_is_legacy)
         devmet = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                              is_gchp=True)
+                              is_gchp=True,
+                              is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Print emisisons and inventory tables
         bmk.make_benchmark_emis_tables(
@@ -957,9 +1000,11 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read
         col = "JValues"
         ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
         dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Plot J-values
         bmk.make_benchmark_jvalue_plots(
@@ -983,9 +1028,11 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read
         col = "Aerosols"
         ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
         dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Plot AODs
         bmk.make_benchmark_aod_plots(
@@ -1009,9 +1056,11 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read
         col = "Restart"
         ref = get_filepath(gchp_vs_gchp_refrst, col, gchp_end_ref_date,
-                           is_gchp=True)
+                           is_gchp=True,                            
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
         dev = get_filepath(gchp_vs_gchp_devrst, col, gchp_end_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Plot mass tables
         bmk.make_benchmark_mass_tables(
@@ -1032,8 +1081,12 @@ if gchp_vs_gchp:
 
         # Diagnostic collections to read
         col = "Budget"
-        ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date, is_gchp=True)
-        dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date, is_gchp=True)
+        ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
+        dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Make budget table. Include calculation of Strat. Exclude Transport
         # and Accumulation.
@@ -1062,9 +1115,11 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read
         col = "Metrics"
         ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_ref_is_legacy)
         dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                           is_gchp=True)
+                           is_gchp=True,
+                           is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create the OH Metrics table
         oh.make_benchmark_oh_metrics(
@@ -1096,9 +1151,11 @@ if gchp_vs_gcc_diff_of_diffs:
         gcc_ref = get_filepath(gcc_vs_gcc_refdir, col, gcc_ref_date)
         gcc_dev = get_filepath(gcc_vs_gcc_devdir, col, gcc_dev_date)
         gchp_ref = get_filepath(gchp_vs_gchp_refdir, col, gchp_ref_date,
-                                is_gchp=True)
+                                is_gchp=True,
+                                is_legacy_gchp_format=gchp_ref_is_legacy)
         gchp_dev = get_filepath(gchp_vs_gchp_devdir, col, gchp_dev_date,
-                                is_gchp=True)
+                                is_gchp=True,
+                                is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create diff-of-diff plots for species concentrations
         # NOTE: for simplicity, do not convert aerosols to ug/m3.

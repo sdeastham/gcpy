@@ -104,6 +104,10 @@ gcc_dev_version = "GCC_dev"
 gchp_ref_version = "GCHP_ref"
 gchp_dev_version = "GCHP_dev"
 
+# Whether GCHP files are legacy (pre-13.1) format
+gchp_ref_is_legacy=True
+gchp_dev_is_legacy=False
+
 # Name to be used for directory of output from this script
 results_dir = "BenchmarkResults"
 
@@ -273,17 +277,22 @@ all_months_ref = np.arange(bmk_start_ref,
 # NOTE: GCHP time-averaged files have time in the middle of the month
 sec_per_month_ref = np.zeros(12)
 days_per_month_ref = np.zeros(12)
-all_months_mid_ref = np.zeros(12, dtype="datetime64[h]")
+all_months_gchp_ref = np.zeros(12, dtype="datetime64[h]")
 for t in range(12):
     days_per_month_ref[t] = monthrange(int(bmk_year_ref), t + 1)[1]
     sec_per_month_ref[t] = days_per_month_ref[t] * 86400.0
     middle_hr = int(days_per_month_ref[t] * 24 / 2)
     delta = np.timedelta64(middle_hr, 'h')
-    all_months_mid_ref[t] = all_months_ref[t].astype("datetime64[h]") + delta
+    all_months_gchp_ref[t] = all_months_ref[t].astype("datatime64[h]"
+    if gchp_ref_is_legacy:
+        all_months_gchp_ref[t] = all_months_gchp_ref[t] + delta
 
 # Get subset of month datetimes for only benchmark months
 bmk_mons_ref = all_months_ref[bmk_mon_inds]
-bmk_mons_mid_ref = all_months_mid_ref[bmk_mon_inds]
+if gchp_ref_is_legacy:
+    bmk_mons_gchp_ref = all_months_gchp_ref[bmk_mon_inds]
+else:
+    bmk_mons_gchp_ref = bmk_mons_ref
 bmk_sec_per_month_ref = sec_per_month_ref[bmk_mon_inds]
 
 # =====================================================================
@@ -312,11 +321,16 @@ for t in range(12):
     sec_per_month_dev[t] = days_per_month_dev[t] * 86400.0
     middle_hr = int(days_per_month_dev[t] * 24 / 2)
     delta = np.timedelta64(middle_hr, 'h')
-    all_months_mid_dev[t] = all_months_dev[t].astype("datetime64[h]") + delta
+    all_months_gchp_dev[t] = all_months_dev[t].astype("datatime64[h]"
+    if gchp_dev_is_legacy:
+        all_months_gchp_dev[t] = all_months_gchp_dev[t] + delta
 
 # Get subset of month datetimes for only benchmark months
 bmk_mons_dev = all_months_dev[bmk_mon_inds]
-bmk_mons_mid_dev = all_months_mid_dev[bmk_mon_inds]
+if gchp_dev_is_legacy:
+    bmk_mons_gchp_dev = all_months_gchp_dev[bmk_mon_inds]
+else:
+    bmk_mons_gchp_dev = bmk_mons_dev
 bmk_sec_per_month_dev = sec_per_month_dev[bmk_mon_inds]
 
 # ======================================================================
@@ -717,17 +731,24 @@ if gchp_vs_gcc:
 
             # Time & date quantities
             reftime = bmk_mons_dev[t]
-            devtime = bmk_mons_mid_dev[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
 
             # SpeciesConc
             ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
-            dev = get_filepath(gchp_vs_gcc_devdir, col, devtime, is_gchp=True)
+            dev = get_filepath(gchp_vs_gcc_devdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # StateMet
             refmet = get_filepath(gchp_vs_gcc_refdir, col_met_gcc, reftime)
-            devmet = get_filepath(gchp_vs_gcc_devdir, col_met_gchp, devtime,
-                                  is_gchp=True)
+            devmet = get_filepath(gchp_vs_gcc_devdir,
+                                  col_met_gchp,
+                                  devtime,
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_dev_is_legacy)
 
             bmk.make_benchmark_conc_plots(
                 ref,
@@ -759,12 +780,16 @@ if gchp_vs_gcc:
 
             # Time & date quantities
             reftime = bmk_mons_dev[t]
-            devtime = bmk_mons_mid_dev[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
 
             # Read data
             ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
-            dev = get_filepath(gchp_vs_gcc_devdir, col, devtime, is_gchp=True)
+            dev = get_filepath(gchp_vs_gcc_devdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create plots
             bmk.make_benchmark_emis_plots(
@@ -793,10 +818,16 @@ if gchp_vs_gcc:
 
         # Read data
         ref = get_filepaths(gchp_vs_gcc_refdir, col, all_months_dev)
-        dev = get_filepaths(gchp_vs_gcc_devdir, col, all_months_mid_dev,
-                            is_gchp=True)
-        devmet = get_filepaths(gchp_vs_gcc_devdir, col_met_gchp,
-                               all_months_mid_dev, is_gchp=True)
+        dev = get_filepaths(gchp_vs_gcc_devdir,
+                            col,
+                            all_months_gchp_dev,
+                            is_gchp=True,
+                            is_legacy_gchp_format=gchp_dev_is_legacy)
+        devmet = get_filepaths(gchp_vs_gcc_devdir,
+                               col_met_gchp,
+                               all_months_gchp_dev,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create emissions table that spans entire year
         bmk.make_benchmark_emis_tables(
@@ -826,12 +857,16 @@ if gchp_vs_gcc:
 
             # Time & date quantities
             reftime = bmk_mons_dev[t]
-            devtime = bmk_mons_mid_dev[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
 
             # Read data
             ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
-            dev = get_filepath(gchp_vs_gcc_devdir, col, devtime, is_gchp=True)
+            dev = get_filepath(gchp_vs_gcc_devdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create plots
             bmk.make_benchmark_jvalue_plots(
@@ -860,12 +895,16 @@ if gchp_vs_gcc:
 
             # Time & date quantities
             reftime = bmk_mons_dev[t]
-            devtime = bmk_mons_mid_dev[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
 
             # Read data
             ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
-            dev = get_filepath(gchp_vs_gcc_devdir, col, devtime, is_gchp=True)
+            dev = get_filepath(gchp_vs_gcc_devdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create plots
             bmk.make_benchmark_aod_plots(
@@ -900,8 +939,11 @@ if gchp_vs_gcc:
 
             # Read data
             ref = get_filepath(gchp_vs_gcc_refrstdir, col, reftime)
-            dev = get_filepath(gchp_vs_gcc_devrstdir, col, devtime,
-                               is_gchp=True)
+            dev = get_filepath(gchp_vs_gcc_devrstdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # use initial restart if no checkpoint present (intended for
             # first month).  need to pass path of meteorology file with
@@ -912,8 +954,11 @@ if gchp_vs_gcc:
                            'initial_GEOSChem_rst.' + gchp_dev_res +
                            '_benchmark.nc')
                 extratime = bmk_mons_dev[t+1]
-                dev_extra = get_filepath(gchp_vs_gcc_devrstdir, col,
-                                         extratime, is_gchp=True)
+                dev_extra = get_filepath(gchp_vs_gcc_devrstdir,
+                                         col,
+                                         extratime,
+                                         is_gchp=True,
+                                         is_legacy_gchp_format=gchp_dev_is_legacy)
             # Create tables
             bmk.make_benchmark_mass_tables(
                 ref,
@@ -945,7 +990,7 @@ if gchp_vs_gcc:
 
             # Time & date quantities
             reftime = bmk_mons_ref[t]
-            devtime = bmk_mons_mid_dev[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
             label = "at 01{}".format(datestr)
             sec_ref = bmk_sec_per_month_ref[t]
@@ -953,7 +998,11 @@ if gchp_vs_gcc:
 
             # Read data
             ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
-            dev = get_filepath(gchp_vs_gcc_devdir, col, devtime, is_gchp=True)
+            dev = get_filepath(gchp_vs_gcc_devdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create tables
             bmk.make_benchmark_operations_budget(
@@ -987,12 +1036,21 @@ if gchp_vs_gcc:
         col_met = gchp_dev_metname()
 
         # Read data from all months
-        dev_aero = get_filepaths(gchp_vs_gcc_devdir, col_aero,
-                                 all_months_mid_dev, is_gchp=True)
-        dev_spc = get_filepaths(gchp_vs_gcc_devdir, col_spc,
-                                all_months_mid_dev, is_gchp=True)
-        dev_met = get_filepaths(gchp_vs_gcc_devdir, col_met,
-                                all_months_mid_dev, is_gchp=True)
+        dev_aero = get_filepaths(gchp_vs_gcc_devdir,
+                                 col_aero,
+                                 all_months_gchp_dev,
+                                 is_gchp=True,
+                                 is_legacy_gchp_format=gchp_dev_is_legacy)
+        dev_spc = get_filepaths(gchp_vs_gcc_devdir,
+                                col_spc,
+                                all_months_gchp_dev,
+                                is_gchp=True,
+                                is_legacy_gchp_format=gchp_dev_is_legacy)
+        dev_met = get_filepaths(gchp_vs_gcc_devdir,
+                                col_met,
+                                all_months_gchp_dev,
+                                is_gchp=True,
+                                is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Compute global aerosol budgets and burdens
         bmk.make_benchmark_aerosol_tables(
@@ -1049,8 +1107,11 @@ if gchp_vs_gcc:
         # Diagnostic collection files to read
         col = "Metrics"
         ref = get_filepaths(gchp_vs_gcc_refdir, col, all_months_dev)[0]
-        dev = get_filepaths(gchp_vs_gcc_devdir, col, all_months_mid_dev,
-                            is_gchp=True)[0]
+        dev = get_filepaths(gchp_vs_gcc_devdir,
+                            col,
+                            all_months_gchp_dev,
+                            is_gchp=True,
+                            is_legacy_gchp_format=gchp_dev_is_legacy)[0]
 
         # Create the OH Metrics table
         oh.make_benchmark_oh_metrics(
@@ -1086,16 +1147,28 @@ if gchp_vs_gchp:
         for t in range(bmk_n_months):
 
             # SpeciesConc
-            ref = get_filepath(gchp_vs_gchp_refdir, col, bmk_mons_mid_ref[t],
-                               is_gchp=True)
-            dev = get_filepath(gchp_vs_gchp_devdir, col, bmk_mons_mid_dev[t],
-                               is_gchp=True)
+            ref = get_filepath(gchp_vs_gchp_refdir,
+                               col,
+                               bmk_mons_gchp_ref[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
+            dev = get_filepath(gchp_vs_gchp_devdir,
+                               col,
+                               bmk_mons_gchp_dev[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # StateMet
-            refmet = get_filepath(gchp_vs_gchp_refdir, col_met_ref,
-                                  bmk_mons_mid_ref[t], is_gchp=True)
-            devmet = get_filepath(gchp_vs_gchp_devdir, col_met_dev,
-                                  bmk_mons_mid_dev[t], is_gchp=True)
+            refmet = get_filepath(gchp_vs_gchp_refdir,
+                                  col_met_ref,
+                                  bmk_mons_gchp_ref[t],
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_ref_is_legacy)
+            devmet = get_filepath(gchp_vs_gchp_devdir,
+                                  col_met_dev,
+                                  bmk_mons_gchp_dev[t],
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_dev_is_legacy)
 
             bmk.make_benchmark_conc_plots(
                 ref,
@@ -1125,10 +1198,16 @@ if gchp_vs_gchp:
         # Create concentration plots for each benchmark month
         for t in range(bmk_n_months):
 
-            ref = get_filepath(gchp_vs_gchp_refdir, col,
-                               bmk_mons_mid_ref[t],  is_gchp=True)
-            dev = get_filepath(gchp_vs_gchp_devdir, col,
-                               bmk_mons_mid_dev[t],  is_gchp=True)
+            ref = get_filepath(gchp_vs_gchp_refdir,
+                               col,
+                               bmk_mons_gchp_ref[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
+            dev = get_filepath(gchp_vs_gchp_devdir,
+                               col,
+                               bmk_mons_gchp_dev[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create the plots
             bmk.make_benchmark_emis_plots(
@@ -1157,14 +1236,26 @@ if gchp_vs_gchp:
         col_met_dev = gchp_dev_metname()
 
         # Read data
-        ref = get_filepaths(gchp_vs_gchp_refdir, col,
-                            all_months_mid_ref, is_gchp=True)
-        dev = get_filepaths(gchp_vs_gchp_devdir, col,
-                            all_months_mid_dev, is_gchp=True)
-        refmet = get_filepaths(gchp_vs_gchp_refdir, col_met_ref,
-                               all_months_mid_ref, is_gchp=True)
-        devmet = get_filepaths(gchp_vs_gchp_devdir, col_met_dev,
-                               all_months_mid_dev, is_gchp=True)
+        ref = get_filepaths(gchp_vs_gchp_refdir,
+                            col,
+                            all_months_gchp_ref,
+                            is_gchp=True,
+                            is_legacy_gchp_format=gchp_ref_is_legacy)
+        dev = get_filepaths(gchp_vs_gchp_devdir,
+                            col,
+                            all_months_gchp_dev,
+                            is_gchp=True,
+                            is_legacy_gchp_format=gchp_dev_is_legacy)
+        refmet = get_filepaths(gchp_vs_gchp_refdir,
+                               col_met_ref,
+                               all_months_gchp_ref,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
+        devmet = get_filepaths(gchp_vs_gchp_devdir,
+                               col_met_dev,
+                               all_months_gchp_dev,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Create emissions table that spans entire year
         bmk.make_benchmark_emis_tables(
@@ -1192,10 +1283,16 @@ if gchp_vs_gchp:
 
         # Create J-value plots for each benchmark month
         for t in range(bmk_n_months):
-            ref = get_filepath(gchp_vs_gchp_refdir, col,
-                               bmk_mons_mid_ref[t], is_gchp=True)
-            dev = get_filepath(gchp_vs_gchp_devdir, col,
-                               bmk_mons_mid_dev[t], is_gchp=True)
+            ref = get_filepath(gchp_vs_gchp_refdir,
+                               col,
+                               bmk_mons_gchp_ref[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
+            dev = get_filepath(gchp_vs_gchp_devdir,
+                               col,
+                               bmk_mons_gchp_dev[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
             bmk.make_benchmark_jvalue_plots(
                 ref,
                 gchp_vs_gchp_refstr,
@@ -1219,10 +1316,16 @@ if gchp_vs_gchp:
 
         # Create AOD plots for each benchmark month
         for t in range(bmk_n_months):
-            ref = get_filepath(gchp_vs_gchp_refdir, col,
-                               bmk_mons_mid_ref[t], is_gchp=True)
-            dev = get_filepath(gchp_vs_gchp_devdir, col,
-                               bmk_mons_mid_dev[t], is_gchp=True)
+            ref = get_filepath(gchp_vs_gchp_refdir,
+                               col,
+                               bmk_mons_gchp_ref[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
+            dev = get_filepath(gchp_vs_gchp_devdir,
+                               col,
+                               bmk_mons_gchp_dev[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
             bmk.make_benchmark_aod_plots(
                 ref,
                 gchp_vs_gchp_refstr,
@@ -1253,28 +1356,40 @@ if gchp_vs_gchp:
             label = "at 01{}".format(datestr)
 
             # Read Ref data
-            ref = get_filepath(gchp_vs_gchp_refrstdir, col, reftime,
-                               is_gchp=True)
+            ref = get_filepath(gchp_vs_gchp_refrstdir,
+                               col,
+                               reftime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
             ref_extra=''
             if not os.path.isfile(ref):
                 ref = join(gchp_vs_gchp_refrstdir,
                            'initial_GEOSChem_rst.' + gchp_ref_res
                            + '_benchmark.nc')
                 extraref = bmk_mons_ref[t+1]
-                ref_extra = get_filepath(gchp_vs_gchp_refrstdir, col,
-                                         extraref, is_gchp=True)
+                ref_extra = get_filepath(gchp_vs_gchp_refrstdir,
+                                         col,
+                                         extraref,
+                                         is_gchp=True,
+                                         is_legacy_gchp_format=gchp_ref_is_legacy)
 
             # Read Dev data
-            dev = get_filepath(gchp_vs_gchp_devrstdir, col, devtime,
-                               is_gchp=True)
+            dev = get_filepath(gchp_vs_gchp_devrstdir,
+                               col,
+                               devtime,
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
             dev_extra=''
             if not os.path.isfile(dev):
                 dev = join(gchp_vs_gchp_devrstdir,
                            'initial_GEOSChem_rst.' + gchp_dev_res
                            + '_benchmark.nc')
                 extradev = bmk_mons_dev[t+1]
-                dev_extra = get_filepath(gchp_vs_gchp_devrstdir, col,
-                                         extradev, is_gchp=True)
+                dev_extra = get_filepath(gchp_vs_gchp_devrstdir,
+                                         col,
+                                         extradev,
+                                         is_gchp=True,
+                                         is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create tables
             bmk.make_benchmark_mass_tables(
@@ -1306,17 +1421,23 @@ if gchp_vs_gchp:
         def parallel_ops_budg(t):
 
             # Time & date quantities
-            reftime = bmk_mons_mid_ref[t]
-            devtime = bmk_mons_mid_dev[t]
+            reftime = bmk_mons_gchp_ref[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
             label = "at 01{}".format(datestr)
             sec_ref = bmk_sec_per_month_ref[t]
             sec_dev = bmk_sec_per_month_dev[t]
             # Create budget table for each benchmark month (ewl??)
-            ref = get_filepath(gchp_vs_gchp_refdir, col, bmk_mons_mid_ref[t],
-                               is_gchp=True)
-            dev = get_filepath(gchp_vs_gchp_devdir, col, bmk_mons_mid_dev[t],
-                               is_gchp=True)
+            ref = get_filepath(gchp_vs_gchp_refdir,
+                               col,
+                               bmk_mons_gchp_ref[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
+            dev = get_filepath(gchp_vs_gchp_devdir,
+                               col,
+                               bmk_mons_gchp_dev[t],
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
             plot_dir = join(gchp_vs_gchp_budgetdir, bmk_mon_yr_strs_dev[t])
             bmk.make_benchmark_operations_budget(
                 gchp_ref_version,
@@ -1382,8 +1503,16 @@ if gchp_vs_gchp:
 
         # Diagnostic collection files to read
         col = "Metrics"
-        ref = get_filepaths(gchp_vs_gchp_refdir, col, all_months_mid_ref, is_gchp=True)[0]
-        dev = get_filepaths(gchp_vs_gchp_devdir, col, all_months_mid_dev, is_gchp=True)[0]
+        ref = get_filepaths(gchp_vs_gchp_refdir,
+                            col,
+                            all_months_gchp_ref,
+                            is_gchp=True,
+                            is_legacy_gchp_format=gchp_ref_is_legacy)[0]
+        dev = get_filepaths(gchp_vs_gchp_devdir,
+                            col,
+                            all_months_gchp_dev,
+                            is_gchp=True,
+                            is_legacy_gchp_format=gchp_dev_is_legacy)[0]
 
         # Create the OH Metrics table
         oh.make_benchmark_oh_metrics(

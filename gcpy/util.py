@@ -1557,7 +1557,7 @@ def check_for_area(ds, gcc_area_name="AREA", gchp_area_name="Met_AREAM2"):
     return ds
 
 
-def get_filepath(datadir, col, date, is_gchp=False):
+def get_filepath(datadir, col, date, is_gchp=False, is_legacy_gchp_format=True):
     """
     Routine to return file path for a given GEOS-Chem "Classic"
     (aka "GCC") or GCHP diagnostic collection and date.
@@ -1575,6 +1575,10 @@ def get_filepath(datadir, col, date, is_gchp=False):
         is_gchp: bool
             Set this switch to True to obtain file pathnames to
             GCHP diagnostic data files. If False, assumes GEOS-Chem "Classic"
+        is_legacy_gchp_format: bool
+            Set this switch to True to obtain GCHP file pathnames of
+            the legacy format for diagnostics, which do not match GC-Classic
+            filenames. Set to False to use same format as GC-Classic.
 
     Returns:
         path: str
@@ -1592,8 +1596,11 @@ def get_filepath(datadir, col, date, is_gchp=False):
             extension = ".nc4"
             date_str = np.datetime_as_string(date, unit="s")
         else:
-            file_tmpl = os.path.join(datadir, "GCHP.{}.".format(col))
             extension = "z.nc4"
+            if is_legacy_gchp_format:
+                file_tmpl = os.path.join(datadir, "GCHP.{}.".format(col))
+            else:
+                file_tmpl = os.path.join(datadir, "GEOSChem.{}.".format(col))
     else:
         if "Emissions" in col:
             file_tmpl = os.path.join(datadir, "HEMCO_diagnostics.")
@@ -1611,7 +1618,7 @@ def get_filepath(datadir, col, date, is_gchp=False):
     return path
 
 
-def get_filepaths(datadir, collections, dates, is_gchp=False):
+def get_filepaths(datadir, collections, dates, is_gchp=False, is_legacy_gchp_format=True):
     """
     Routine to return filepaths for a given GEOS-Chem "Classic"
     (aka "GCC") or GCHP diagnostic collection.
@@ -1629,6 +1636,10 @@ def get_filepaths(datadir, collections, dates, is_gchp=False):
         is_gchp: bool
             Set this switch to True to obtain file pathnames to
             GCHP diagnostic data files. If False, assumes GEOS-Chem "Classic"
+        is_legacy_gchp_format: bool
+            Set this switch to True to obtain GCHP file pathnames of
+            the legacy format for diagnostics, which do not match GC-Classic
+            filenames. Set to False to use same format as GC-Classic.
 
     Returns:
         paths: 2D list of str
@@ -1654,6 +1665,7 @@ def get_filepaths(datadir, collections, dates, is_gchp=False):
     # ==================================================================
     for c, collection in enumerate(collections):
 
+        separator = "_"
         if is_gchp:
             # ---------------------------------------
             # Get the file path template for GCHP
@@ -1661,13 +1673,14 @@ def get_filepaths(datadir, collections, dates, is_gchp=False):
             if "Restart" in collection:
                 file_tmpl = os.path.join(datadir,
                                          "gcchem_internal_checkpoint.restart.")
-                separator = "_"
                 extension = ".nc4"
             else:
-                file_tmpl = os.path.join(datadir,
-                                         "GCHP.{}.".format(collection))
-                separator = "_"
                 extension = "z.nc4"
+                if is_legacy_gchp_format:
+                    file_tmpl = os.path.join(datadir,
+                                             "GCHP.{}.".format(collection))
+                else:
+                    file_tmpl = os.path.join(datadir, "GEOSChem.{}.".format(collection))
         else:
             # ---------------------------------------
             # Get the file path template for GCC
@@ -1680,7 +1693,6 @@ def get_filepaths(datadir, collections, dates, is_gchp=False):
             else:
                 file_tmpl = os.path.join(datadir,
                                          "GEOSChem.{}.".format(collection))
-                separator = "_"
                 extension = "z.nc4"
 
         # --------------------------------------------

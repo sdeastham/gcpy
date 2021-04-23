@@ -100,6 +100,10 @@ gcc_dev_version = "GCC_dev"
 gchp_ref_version = "GCHP_ref"
 gchp_dev_version = "GCHP_dev"
 
+# Whether GCHP files are legacy (pre-13.1) format
+gchp_ref_is_legacy=True
+gchp_dev_is_legacy=False
+
 # Name to be used for directory of output from this script
 results_dir = "BenchmarkResults"
 
@@ -235,7 +239,10 @@ for t in range(12):
 
 # Get subset of month datetimes for only benchmark months
 bmk_mons_ref = all_months_ref[bmk_mon_inds]
-bmk_mons_mid_ref = all_months_mid_ref[bmk_mon_inds]
+if gchp_ref_is_legacy:
+    bmk_mons_gchp_ref = all_months_mid_ref[bmk_mon_inds]
+else:
+    bmk_mons_gchp_ref = bmk_mons_ref
 
 # =====================================================================
 # Dates and times -- Dev data
@@ -253,7 +260,7 @@ all_months_dev = np.arange(bmk_start_dev, bmk_end_dev,
 
 # Get all months array of mid-point datetime per month for benchmark year
 # and # sec in year
-# NOTE: GCHP time-averaged files have time in the middle of the month
+# NOTE: GCHP time-averaged files may have time in the middle of the month
 sec_per_yr_dev = 0
 all_months_mid_dev = np.zeros(12, dtype="datetime64[h]")
 for t in range(12):
@@ -265,7 +272,10 @@ for t in range(12):
 
 # Get subset of month datetimes for only benchmark months
 bmk_mons_dev = all_months_dev[bmk_mon_inds]
-bmk_mons_mid_dev = all_months_mid_dev[bmk_mon_inds]
+if gchp_dev_is_legacy:
+    bmk_mons_gchp_dev = all_months_mid_dev[bmk_mon_inds]
+else:
+    bmk_mons_gchp_dev = bmk_mons_dev
 
 # ======================================================================
 # Print the list of plots & tables to the screen
@@ -467,15 +477,17 @@ if gchp_vs_gcc:
 
             # Time & date quantities
             reftime = bmk_mons_dev[t]
-            devtime = bmk_mons_mid_dev[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
 
             # Seasonal diagnostic collection files to read
             ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
             dev = get_filepath(gchp_vs_gcc_devdir, col, devtime,
-                               is_gchp=True)
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
             devmet = get_filepath(gchp_vs_gcc_devdir, colmet, devtime,
-                                  is_gchp=True)
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Create plots
             bmk.make_benchmark_conc_plots(
@@ -510,15 +522,17 @@ if gchp_vs_gcc:
 
                 # Time & date quantities
                 reftime = bmk_mons_dev[t]
-                devtime = bmk_mons_mid_dev[t]
+                devtime = bmk_mons_gchp_dev[t]
                 datestr = bmk_mon_yr_strs_dev[t]
 
                 # Seasonal diagnostic quantities to read
                 ref = get_filepath(gchp_vs_gcc_refdir, col, reftime)
                 dev = get_filepath(gchp_vs_gcc_devdir, col, devtime,
-                                   is_gchp=True)
+                                   is_gchp=True,
+                                   is_legacy_gchp_format=gchp_dev_is_legacy)
                 devmet = get_filepath(gchp_vs_gcc_devdir, colmet, devtime,
-                                      is_gchp=True)
+                                      is_gchp=True,
+                                      is_legacy_gchp_format=gchp_dev_is_legacy)
 
                 # Create plots
                 bmk.make_benchmark_wetdep_plots(
@@ -563,8 +577,11 @@ if gchp_vs_gcc:
         # Diagnostic collection files to read (all 12 months)
         col = "Budget"
         refs = get_filepaths(gchp_vs_gcc_refdir, col, all_months_dev)
-        devs = get_filepaths(gchp_vs_gcc_devdir, col, all_months_mid_dev,
-                             is_gchp=True)
+        devs = get_filepaths(gchp_vs_gcc_devdir,
+                             col,
+                             all_months_gchp_dev,
+                             is_gchp=True,
+                             is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Make operations budget table
         bmk.make_benchmark_operations_budget(
@@ -606,19 +623,23 @@ if gchp_vs_gchp:
         for t in range(bmk_n_months):
 
             # Time & date quantities
-            reftime = bmk_mons_mid_ref[t]
-            devtime = bmk_mons_mid_dev[t]
+            reftime = bmk_mons_gchp_ref[t]
+            devtime = bmk_mons_gchp_dev[t]
             datestr = bmk_mon_yr_strs_dev[t]
 
             # Seasonal diagnostic collection files to read
             ref = get_filepath(gchp_vs_gchp_refdir, col, reftime,
-                               is_gchp=True)
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_ref_is_legacy)
             dev = get_filepath(gchp_vs_gchp_devdir, col, devtime,
-                               is_gchp=True)
+                               is_gchp=True,
+                               is_legacy_gchp_format=gchp_dev_is_legacy)
             refmet = get_filepath(gchp_vs_gchp_refdir, colmet, devtime,
-                                  is_gchp=True)
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_ref_is_legacy)
             devmet = get_filepath(gchp_vs_gchp_devdir, colmet, devtime,
-                                  is_gchp=True)
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_dev_is_legacy)
 
             # Make concentration plots
             bmk.make_benchmark_conc_plots(
@@ -654,19 +675,23 @@ if gchp_vs_gchp:
             for t in range(bmk_n_months):
 
                 # Time & date quantities
-                reftime = bmk_mons_mid_ref[t]
-                devtime = bmk_mons_mid_dev[t]
+                reftime = bmk_mons_gchp_ref[t]
+                devtime = bmk_mons_gchp_dev[t]
                 datestr = bmk_mon_yr_strs_dev[t]
 
                 # Seasonal diagnostic quantity files to read
                 ref = get_filepath(gchp_vs_gchp_refdir, col, reftime,
-                                   is_gchp=True)
+                                   is_gchp=True,
+                                   is_legacy_gchp_format=gchp_ref_is_legacy)
                 dev = get_filepath(gchp_vs_gchp_devdir, col, devtime,
-                                   is_gchp=True)
+                                   is_gchp=True,
+                                   is_legacy_gchp_format=gchp_dev_is_legacy)
                 refmet = get_filepath(gchp_vs_gchp_refdir, colmet, reftime,
-                                      is_gchp=True)
+                                      is_gchp=True,
+                                      is_legacy_gchp_format=gchp_ref_is_legacy)
                 devmet = get_filepath(gchp_vs_gchp_devdir, colmet, devtime,
-                                      is_gchp=True)
+                                      is_gchp=True,
+                                      is_legacy_gchp_format=gchp_dev_is_legacy)
 
                 # Create plots
                 bmk.make_benchmark_wetdep_plots(
@@ -713,9 +738,11 @@ if gchp_vs_gchp:
         # Diagnostic collection files to read (all 12 months)
         col = "Budget"
         refs = get_filepaths(gchp_vs_gchp_refdir, col,
-                             all_months_mid_ref, is_gchp=True)
+                             all_months_gchp_ref, is_gchp=True,
+                             is_legacy_gchp_format=gchp_ref_is_legacy)
         devs = get_filepaths(gchp_vs_gchp_devdir, col,
-                             all_months_mid_dev, is_gchp=True)
+                             all_months_gchp_dev, is_gchp=True,
+                             is_legacy_gchp_format=gchp_dev_is_legacy)
 
         # Make operations budget table
         bmk.make_benchmark_operations_budget(
@@ -746,8 +773,7 @@ if cons_table:
         print("\n%%% Creating GCC ref mass conservation table %%%")
         
         # Get monthly restart files in the gcc refrst directory
-        datafiles = get_filepaths(gcc_vs_gcc_refrstdir, col, all_months_ref,
-                                  is_gchp=False)[0]
+        datafiles = get_filepaths(gcc_vs_gcc_refrstdir, col, all_months_ref)[0]
         
         # Make mass conservation table
         bmk.make_benchmark_mass_conservation_table(
@@ -762,8 +788,7 @@ if cons_table:
         print("\n%%% Creating GCC dev mass conservation table %%%")
         
         # Get monthly restart files in the gcc devrst directory
-        datafiles = get_filepaths(gcc_vs_gcc_devrstdir, col, all_months_dev,
-                                  is_gchp=False)[0]
+        datafiles = get_filepaths(gcc_vs_gcc_devrstdir, col, all_months_dev)[0]
         
         if gchp_vs_gcc:
             tablesdir=gchp_vs_gcc_tablesdir
@@ -783,8 +808,11 @@ if cons_table:
         print("\n%%% Creating GCHP dev mass conservation table %%%")
         
         # Get monthly restart files in the gcc devrst directory
-        datafiles = get_filepaths(gchp_vs_gcc_devrstdir, col, all_months_dev,
-                                  is_gchp=True)[0]
+        datafiles = get_filepaths(gchp_vs_gcc_devrstdir,
+                                  col,
+                                  all_months_dev,
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_dev_is_legacy)[0]
         
         if gchp_vs_gcc:
             tablesdir=gchp_vs_gcc_tablesdir
@@ -804,8 +832,11 @@ if cons_table:
         print("\n%%% Creating GCHP ref mass conservation table %%%")
         
         # Get monthly restart files in the gcc devrst directory
-        datafiles = get_filepaths(gchp_vs_gchp_refrstdir, col, all_months_ref,
-                                  is_gchp=True)[0]
+        datafiles = get_filepaths(gchp_vs_gchp_refrstdir,
+                                  col,
+                                  all_months_ref,
+                                  is_gchp=True,
+                                  is_legacy_gchp_format=gchp_dev_is_legacy)[0]
         
         # Make mass conservation table
         bmk.make_benchmark_mass_conservation_table(
